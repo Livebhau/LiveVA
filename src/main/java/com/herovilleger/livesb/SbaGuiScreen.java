@@ -25,7 +25,7 @@ public class SbaGuiScreen extends Screen {
         int contentX = startX + sidebarWidth + 15;
         int contentY = startY + 35;
 
-        // === SIDEBAR CATEGORY BUTTONS ===
+        // === SIDEBAR TABS ===
         int catY = startY + 35;
         this.addDrawableChild(ButtonWidget.builder(Text.literal(currentCategory.equals("General") ? "§d▶ General" : "General"), button -> {
             currentCategory = "General";
@@ -41,7 +41,6 @@ public class SbaGuiScreen extends Screen {
             currentCategory = "Dungeons";
             this.init();
         }).dimensions(startX + 10, catY + 50, sidebarWidth - 20, 20).build());
-
 
         // === MAIN CONTENT SETTINGS ===
         int btnWidth = 120;
@@ -79,7 +78,6 @@ public class SbaGuiScreen extends Screen {
                 button.setMessage(Text.literal("Guild !p: " + (LiveModClient.guildP ? "§aON" : "§cOFF")));
             }).dimensions(contentX, contentY + 40, btnWidth, btnHeight).build());
 
-            // NAYA: Private !p Button
             this.addDrawableChild(ButtonWidget.builder(Text.literal("Private !p: " + (LiveModClient.privateP ? "§aON" : "§cOFF")), button -> {
                 LiveModClient.privateP = !LiveModClient.privateP;
                 LiveModClient.saveConfig();
@@ -103,7 +101,7 @@ public class SbaGuiScreen extends Screen {
 
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        context.fill(0, 0, this.width, this.height, 0x88000000);
+        context.fill(0, 0, this.width, this.height, 0x88000000); // Background dim
 
         int guiWidth = 400;
         int guiHeight = 250;
@@ -111,17 +109,21 @@ public class SbaGuiScreen extends Screen {
         int startY = (this.height - guiHeight) / 2;
         int sidebarWidth = 110;
 
+        // Backgrounds
         context.fill(startX + sidebarWidth, startY, startX + guiWidth, startY + guiHeight, 0xFF1E1E24);
         context.fill(startX, startY, startX + sidebarWidth, startY + guiHeight, 0xFF15151A);
 
+        // Manual Purple Border Fix
         int borderColor = 0xFFAA00AA;
         context.fill(startX - 1, startY - 1, startX + guiWidth + 1, startY, borderColor);
         context.fill(startX - 1, startY + guiHeight, startX + guiWidth + 1, startY + guiHeight + 1, borderColor);
         context.fill(startX - 1, startY, startX, startY + guiHeight, borderColor);
         context.fill(startX + guiWidth, startY, startX + guiWidth + 1, startY + guiHeight, borderColor);
 
+        // Divider
         context.fill(startX + sidebarWidth, startY + 24, startX + guiWidth, startY + 25, 0xFF303038);
 
+        // Text
         context.drawTextWithShadow(this.textRenderer, "Categories", startX + 25, startY + 10, 0xAA00AA);
         context.drawTextWithShadow(this.textRenderer, "Settings: " + currentCategory, startX + sidebarWidth + 15, startY + 10, 0xFFFFFF);
 

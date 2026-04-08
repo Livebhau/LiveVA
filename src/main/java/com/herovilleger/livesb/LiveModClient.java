@@ -32,7 +32,7 @@ import java.util.regex.Pattern;
 public class LiveModClient implements ClientModInitializer {
     public static final Logger LOGGER = LoggerFactory.getLogger("LiveSB");
 
-    // --- Master Toggles ---
+    // --- Master Config Variables ---
     public static boolean isAfk = false;
     public static boolean autoAccept = true;
     public static boolean mathBot = true;
@@ -48,18 +48,20 @@ public class LiveModClient implements ClientModInitializer {
     private static KeyBinding openMenuKey;
     private static boolean openGuiNextTick = false;
 
+    // --- Cooldowns & Trackers ---
     private static final Map<String, Long> lastAfkMsg = new HashMap<>();
     private static final Map<String, Long> lastWelcomed = new HashMap<>();
     private static final long AFK_COOLDOWN_MS = 60000;
     private static final long WELCOME_COOLDOWN_MS = 20000;
 
+    // --- File Paths ---
     public static final Set<String> whitelist = new HashSet<>();
     private static final Path WHITELIST_FILE = FabricLoader.getInstance().getConfigDir().resolve("livesb_whitelist.txt");
     private static final Path CONFIG_FILE = FabricLoader.getInstance().getConfigDir().resolve("livesb_config.txt");
 
-    // --- Regex Patterns ---
+    // --- Strict Regex Patterns ---
     private static final Pattern P_PATTERN = Pattern.compile("^(Guild >|Party >|From )?\\s*(?:\\[.*?\\]\\s*)?([a-zA-Z0-9_]+)[^:]*:\\s*!p\\b", Pattern.CASE_INSENSITIVE);
-    private static final Pattern INVITE_PATTERN = Pattern.compile("^(?:.*?\\[.*?\\]\\s*)?([a-zA-Z0-9_]+)\\s+has invited you to join their party!", Pattern.CASE_INSENSITIVE);
+    private static final Pattern INVITE_PATTERN = Pattern.compile("(?:\\[.*?\\]\\s*)?([a-zA-Z0-9_]+)\\s+has invited you to join their party!", Pattern.CASE_INSENSITIVE);
     private static final Pattern JOIN_PATTERN = Pattern.compile("^(?:Party Finder >\\s*)?\\(?(?:\\[.*?\\]\\s*)?([a-zA-Z0-9_]+)\\)?\\s+joined the (?:party|dungeon group)", Pattern.CASE_INSENSITIVE);
     private static final Pattern MATH_PATTERN = Pattern.compile("^(Guild >|Party >|From )\\s*(?:\\[.*?\\]\\s*)?([a-zA-Z0-9_]+)[^:]*:\\s*!math\\s+(.+)$", Pattern.CASE_INSENSITIVE);
     private static final Pattern DEATH_PATTERN = Pattern.compile("^(?:☠\\s*)?([a-zA-Z0-9_]+)\\s+.*and became a ghost", Pattern.CASE_INSENSITIVE);
@@ -67,7 +69,7 @@ public class LiveModClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         LOGGER.info("=======================================");
-        LOGGER.info("LIVE BHAI KA ADVANCED MOD READY HAI!");
+        LOGGER.info("LIVE BHAI KA PREMIUM MOD READY HAI!");
         LOGGER.info("=======================================");
 
         loadConfig();
@@ -80,12 +82,13 @@ public class LiveModClient implements ClientModInitializer {
 
             String text = message.getString().replaceAll("§.", "").trim();
 
+            // 1. Auto Accept (Whitelist Based)
             if (autoAccept) {
                 Matcher invMatcher = INVITE_PATTERN.matcher(text);
                 if (invMatcher.find()) {
                     String inviter = invMatcher.group(1).toLowerCase();
                     if (whitelist.contains(inviter)) {
-                        client.execute(() -> client.player.sendMessage(Text.literal("§a[LiveVA] Invite detected from " + inviter), false));
+                        client.execute(() -> client.player.sendMessage(Text.literal("§a[LiveVA] Auto-Accepting invite from " + inviter), false));
                         new Timer().schedule(new TimerTask() {
                             @Override
                             public void run() { client.execute(() -> client.getNetworkHandler().sendChatCommand("party accept " + inviter)); }
@@ -94,6 +97,7 @@ public class LiveModClient implements ClientModInitializer {
                 }
             }
 
+            // 2. Auto Welcome (Dynamic Template)
             if (autoWelcome) {
                 Matcher joinMatcher = JOIN_PATTERN.matcher(text);
                 if (joinMatcher.find()) {
@@ -113,11 +117,11 @@ public class LiveModClient implements ClientModInitializer {
                 }
             }
 
+            // 3. Smart !p Invites (Public, Guild, Private)
             Matcher pMatcher = P_PATTERN.matcher(text);
             if (pMatcher.find()) {
                 String channel = pMatcher.group(1);
                 String requester = pMatcher.group(2);
-
                 boolean allowInvite = false;
 
                 if (channel == null || channel.trim().isEmpty()) {
@@ -125,7 +129,7 @@ public class LiveModClient implements ClientModInitializer {
                 } else {
                     String ch = channel.trim().toLowerCase();
                     if (ch.equals("guild >") && guildP) allowInvite = true;
-                    else if (ch.equals("from") && privateP) allowInvite = true;
+                    else if (ch.equals("from ") && privateP) allowInvite = true;
                 }
 
                 if (allowInvite) {
@@ -144,6 +148,7 @@ public class LiveModClient implements ClientModInitializer {
                 }
             }
 
+            // 4. Math Bot
             if (mathBot) {
                 Matcher mathMatcher = MATH_PATTERN.matcher(text);
                 if (mathMatcher.find()) {
@@ -167,16 +172,14 @@ public class LiveModClient implements ClientModInitializer {
                 }
             }
 
-            // NAYA: Advanced Death Detector Logic
+            // 5. Smart Auto BOOM
             if (deathBot) {
                 Matcher deathMatcher = DEATH_PATTERN.matcher(text);
                 if (deathMatcher.find()) {
-                    // 1. Agar text mein "disconnected" likha hai, toh seedha ignore maaro
                     if (!text.toLowerCase().contains("disconnected")) {
                         String deadPlayer = deathMatcher.group(1);
                         String lowerName = deadPlayer.toLowerCase();
 
-                        // 2. Restricted words ki list (Ignore these names completely)
                         boolean isIgnoredName = lowerName.equals("you") ||
                                 lowerName.equals("party") ||
                                 lowerName.equals("guild") ||
@@ -198,6 +201,7 @@ public class LiveModClient implements ClientModInitializer {
             }
         });
 
+        // --- Commands Registration ---
         ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> {
             dispatcher.register(ClientCommandManager.literal("va")
                     .executes(context -> {
@@ -265,6 +269,7 @@ public class LiveModClient implements ClientModInitializer {
             );
         });
 
+        // Keybind (Right Shift)
         openMenuKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("Open VA Menu", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_RIGHT_SHIFT, KeyBinding.Category.create(Identifier.of("livesb", "category"))));
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
@@ -276,6 +281,7 @@ public class LiveModClient implements ClientModInitializer {
         });
     }
 
+    // --- File System Methods ---
     public static void loadConfig() {
         try {
             if (Files.exists(CONFIG_FILE)) {
@@ -339,6 +345,7 @@ public class LiveModClient implements ClientModInitializer {
         try { Files.write(WHITELIST_FILE, whitelist); } catch (Exception ignored) {}
     }
 
+    // --- Math Engine ---
     private String safeCalcJava(String expr) {
         try {
             expr = expr.replace("**", "^").trim();
