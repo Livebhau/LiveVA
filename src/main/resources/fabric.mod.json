@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "id": "livesb",
+  "version": "1.0.0",
+  "name": "LiveVA",
+  "description": "LiveBhai's Premium Skyblock Assistant",
+  "authors": [
+    "LiveBhai"
+  ],
+  "contact": {
+    "homepage": "",
+    "sources": "https://github.com/Livebhau/LiveVA"
+  },
+  "license": "MIT",
+  "icon": "assets/livesb/icon.ico",
+  "environment": "*",
+  "entrypoints": {
+    "client": [
+      "com.herovilleger.livesb.LiveModClient"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.18.4",
+    "minecraft": "~1.21.10",
+    "java": ">=21",
+    "fabric-api": "*"
+  }
+}
