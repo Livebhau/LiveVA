@@ -37,7 +37,7 @@ public class LiveModClient implements ClientModInitializer {
     public static boolean autoAccept = true;
     public static boolean mathBot = true;
     public static boolean guildP = true;
-    public static boolean privateP = true; // NAYA: Private MSG Toggle
+    public static boolean privateP = true;
     public static boolean publicP = true;
     public static boolean autoWelcome = true;
     public static boolean deathBot = true;
@@ -57,9 +57,8 @@ public class LiveModClient implements ClientModInitializer {
     private static final Path WHITELIST_FILE = FabricLoader.getInstance().getConfigDir().resolve("livesb_whitelist.txt");
     private static final Path CONFIG_FILE = FabricLoader.getInstance().getConfigDir().resolve("livesb_config.txt");
 
-    // NAYA: Ab regex properly 'Guild', 'Party', 'From ' (Msg) prefix pakdega
+    // --- Regex Patterns ---
     private static final Pattern P_PATTERN = Pattern.compile("^(Guild >|Party >|From )?\\s*(?:\\[.*?\\]\\s*)?([a-zA-Z0-9_]+)[^:]*:\\s*!p\\b", Pattern.CASE_INSENSITIVE);
-
     private static final Pattern INVITE_PATTERN = Pattern.compile("^(?:.*?\\[.*?\\]\\s*)?([a-zA-Z0-9_]+)\\s+has invited you to join their party!", Pattern.CASE_INSENSITIVE);
     private static final Pattern JOIN_PATTERN = Pattern.compile("^(?:Party Finder >\\s*)?\\(?(?:\\[.*?\\]\\s*)?([a-zA-Z0-9_]+)\\)?\\s+joined the (?:party|dungeon group)", Pattern.CASE_INSENSITIVE);
     private static final Pattern MATH_PATTERN = Pattern.compile("^(Guild >|Party >|From )\\s*(?:\\[.*?\\]\\s*)?([a-zA-Z0-9_]+)[^:]*:\\s*!math\\s+(.+)$", Pattern.CASE_INSENSITIVE);
@@ -114,7 +113,6 @@ public class LiveModClient implements ClientModInitializer {
                 }
             }
 
-            // NAYA: Smart !p Logic
             Matcher pMatcher = P_PATTERN.matcher(text);
             if (pMatcher.find()) {
                 String channel = pMatcher.group(1);
@@ -123,11 +121,11 @@ public class LiveModClient implements ClientModInitializer {
                 boolean allowInvite = false;
 
                 if (channel == null || channel.trim().isEmpty()) {
-                    if (publicP) allowInvite = true; // Public Lobby Chat
+                    if (publicP) allowInvite = true;
                 } else {
                     String ch = channel.trim().toLowerCase();
                     if (ch.equals("guild >") && guildP) allowInvite = true;
-                    else if (ch.equals("from") && privateP) allowInvite = true; // Private MSG Chat
+                    else if (ch.equals("from") && privateP) allowInvite = true;
                 }
 
                 if (allowInvite) {
@@ -169,19 +167,32 @@ public class LiveModClient implements ClientModInitializer {
                 }
             }
 
+            // NAYA: Advanced Death Detector Logic
             if (deathBot) {
                 Matcher deathMatcher = DEATH_PATTERN.matcher(text);
                 if (deathMatcher.find()) {
-                    String deadPlayer = deathMatcher.group(1);
+                    // 1. Agar text mein "disconnected" likha hai, toh seedha ignore maaro
+                    if (!text.toLowerCase().contains("disconnected")) {
+                        String deadPlayer = deathMatcher.group(1);
+                        String lowerName = deadPlayer.toLowerCase();
 
-                    if (!deadPlayer.equalsIgnoreCase("You") && !deadPlayer.equalsIgnoreCase(client.getSession().getUsername())) {
-                        new Timer().schedule(new TimerTask() {
-                            @Override
-                            public void run() {
-                                String boomMsgToSend = boomTemplate.replace("{player}", deadPlayer);
-                                client.execute(() -> client.getNetworkHandler().sendChatCommand("pc " + boomMsgToSend));
-                            }
-                        }, 1000);
+                        // 2. Restricted words ki list (Ignore these names completely)
+                        boolean isIgnoredName = lowerName.equals("you") ||
+                                lowerName.equals("party") ||
+                                lowerName.equals("guild") ||
+                                lowerName.equals("from") ||
+                                lowerName.equals("to") ||
+                                lowerName.equals(client.getSession().getUsername().toLowerCase());
+
+                        if (!isIgnoredName) {
+                            new Timer().schedule(new TimerTask() {
+                                @Override
+                                public void run() {
+                                    String boomMsgToSend = boomTemplate.replace("{player}", deadPlayer);
+                                    client.execute(() -> client.getNetworkHandler().sendChatCommand("pc " + boomMsgToSend));
+                                }
+                            }, 1000);
+                        }
                     }
                 }
             }
@@ -279,7 +290,7 @@ public class LiveModClient implements ClientModInitializer {
                             case "autoAccept": autoAccept = Boolean.parseBoolean(value); break;
                             case "mathBot": mathBot = Boolean.parseBoolean(value); break;
                             case "guildP": guildP = Boolean.parseBoolean(value); break;
-                            case "partyP": // Legacy fallback if config is old
+                            case "partyP":
                             case "privateP": privateP = Boolean.parseBoolean(value); break;
                             case "publicP": publicP = Boolean.parseBoolean(value); break;
                             case "autoWelcome": autoWelcome = Boolean.parseBoolean(value); break;
@@ -302,7 +313,7 @@ public class LiveModClient implements ClientModInitializer {
                     "autoAccept=" + autoAccept,
                     "mathBot=" + mathBot,
                     "guildP=" + guildP,
-                    "privateP=" + privateP, // NAYA: Private MSG save hogi
+                    "privateP=" + privateP,
                     "publicP=" + publicP,
                     "autoWelcome=" + autoWelcome,
                     "deathBot=" + deathBot,
@@ -386,4 +397,3 @@ public class LiveModClient implements ClientModInitializer {
         }.parse();
     }
 }
-//
