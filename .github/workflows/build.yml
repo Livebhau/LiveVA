@@ -3,28 +3,39 @@
 # certain platforms or Java versions, and provides a first line of defence
 # against bad commits.
 
-name: build
-on: [pull_request, push]
+name: Auto Build & Release Minecraft Mod
+
+# Yeh action tab trigger hoga jab aap main ya master branch me code push karenge
+on:
+  push:
+    branches: [ "main", "master" ]
 
 jobs:
   build:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
+
+    # Release create/update karne ke liye permissions zaroori hain
+    permissions:
+      contents: write
+
     steps:
-      - name: checkout repository
+      - name: Checkout Code
         uses: actions/checkout@v4
-      - name: validate gradle wrapper
-        uses: gradle/actions/wrapper-validation@v4
-      - name: setup jdk
+
+      - name: Setup Java JDK
         uses: actions/setup-java@v4
         with:
-          java-version: '25'
-          distribution: 'microsoft'
-      - name: make gradle wrapper executable
-        run: chmod +x ./gradlew
-      - name: build
-        run: ./gradlew build
-      - name: capture build artifacts
-        uses: actions/upload-artifact@v4
+          distribution: 'temurin'
+          java-version: '17' # Agar aap newer Minecraft use kar rahe hain, toh '21' likhein
+
+      - name: Build with Maven
+        run: mvn clean package
+
+      - name: Update GitHub Release
+        uses: softprops/action-gh-release@v2
         with:
-          name: Artifacts
-          path: build/libs/
+          tag_name: "latest" # Har push par "latest" tag update hoga
+          name: "Latest Development Build"
+          body: "Yeh auto-generated release hai latest commit se."
+          prerelease: true
+          files: target/*.jar # Maven yahan jar file banata hai

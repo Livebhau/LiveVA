@@ -1,6 +1,6 @@
 {
 	"required": true,
-	"package": "com.herovilleger.livesb.mixin",
+	"package": "com.herovilleger.liveva.mixin",
 	"compatibilityLevel": "JAVA_21",
 	"mixins": [
 		"ExampleMixin"

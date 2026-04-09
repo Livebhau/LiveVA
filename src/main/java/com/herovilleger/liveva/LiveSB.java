@@ -1,4 +1,4 @@
-package com.herovilleger.livesb;
+package com.herovilleger.liveva;
 
 import net.fabricmc.api.ModInitializer;
 

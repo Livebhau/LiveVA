@@ -1,4 +1,4 @@
-package com.herovilleger.livesb;
+package com.herovilleger.liveva;
 
 import com.mojang.brigadier.arguments.StringArgumentType;
 import net.fabricmc.api.ClientModInitializer;
