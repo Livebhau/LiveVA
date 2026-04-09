@@ -12,11 +12,11 @@
     "sources": "https://github.com/Livebhau/LiveVA"
   },
   "license": "MIT",
-  "icon": "assets/livesb/icon.ico",
+  "icon": "assets/liveva/icon.ico",
   "environment": "*",
   "entrypoints": {
     "client": [
-      "com.herovilleger.livesb.LiveModClient"
+      "com.herovilleger.liveva.LiveModClient"
     ]
   },
   "depends": {
