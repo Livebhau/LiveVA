@@ -5,7 +5,6 @@
 
 name: Auto Build & Release Minecraft Mod
 
-# Yeh action tab trigger hoga jab aap main ya master branch me code push karenge
 on:
   push:
     branches: [ "main", "master" ]
@@ -14,7 +13,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-    # Release create/update karne ke liye permissions zaroori hain
+    # Release create karne ke liye permissions
     permissions:
       contents: write
 
@@ -26,16 +25,21 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: '17' # Agar aap newer Minecraft use kar rahe hain, toh '21' likhein
+          java-version: '17' # Agar naya Minecraft hai toh isko '21' kar dein
 
-      - name: Build with Maven
-        run: mvn clean package
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Build with Gradle
+        run: |
+          chmod +x gradlew
+          ./gradlew build
 
       - name: Update GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: "latest" # Har push par "latest" tag update hoga
+          tag_name: "latest"
           name: "Latest Development Build"
           body: "Yeh auto-generated release hai latest commit se."
           prerelease: true
-          files: target/*.jar # Maven yahan jar file banata hai
+          files: build/libs/*.jar # Gradle yahan jar file save karta hai
