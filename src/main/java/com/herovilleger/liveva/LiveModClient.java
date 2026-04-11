@@ -1,5 +1,7 @@
 package com.herovilleger.liveva;
 
+import com.herovilleger.liveva.clickgui.SbaGuiScreen;
+import com.herovilleger.liveva.config.Feature;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
@@ -7,6 +9,7 @@ import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallba
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.option.KeyBinding;
@@ -32,38 +35,35 @@ import java.util.regex.Pattern;
 public class LiveModClient implements ClientModInitializer {
     public static final Logger LOGGER = LoggerFactory.getLogger("LiveSB");
 
-    // --- Master Config Variables ---
-    public static boolean isAfk = false;
-    public static boolean autoAccept = true;
-    public static boolean mathBot = true;
-    public static boolean guildP = true;
-    public static boolean privateP = true;
-    public static boolean publicP = true;
-    public static boolean autoWelcome = true;
-    public static boolean deathBot = true;
+    public static final Feature F_AFK         = new Feature("isAfk",       false);
+    public static final Feature F_AUTOACCEPT  = new Feature("autoAccept",  false);
+    public static final Feature F_MATHBOT     = new Feature("mathBot",      false);
+    public static final Feature F_GUILDP      = new Feature("guildP",       false);
+    public static final Feature F_PRIVATEP    = new Feature("privateP",     false);
+    public static final Feature F_PUBLICP     = new Feature("publicP",      false);
+    public static final Feature F_AUTOWELCOME = new Feature("autoWelcome",  false);
+    public static final Feature F_DEATHBOT    = new Feature("deathBot",     false);
 
     public static String welcomeTemplate = "Welcome {player} ( ﾟ◡ﾟ)/";
-    public static String boomTemplate = "BOOM {player}";
+    public static String boomTemplate    = "BOOM {player}";
 
     private static KeyBinding openMenuKey;
     private static boolean openGuiNextTick = false;
 
-    // --- Cooldowns & Trackers ---
-    private static final Map<String, Long> lastAfkMsg = new HashMap<>();
+    private static final Map<String, Long> lastAfkMsg   = new HashMap<>();
     private static final Map<String, Long> lastWelcomed = new HashMap<>();
-    private static final long AFK_COOLDOWN_MS = 60000;
+    private static final long AFK_COOLDOWN_MS     = 60000;
     private static final long WELCOME_COOLDOWN_MS = 20000;
 
-    // --- File Paths ---
-    public static final Set<String> whitelist = new HashSet<>();
-    private static final Path WHITELIST_FILE = FabricLoader.getInstance().getConfigDir().resolve("livesb_whitelist.txt");
-    private static final Path CONFIG_FILE = FabricLoader.getInstance().getConfigDir().resolve("livesb_config.txt");
+    public static final Set<String> whitelist       = new HashSet<>();
+    private static final Path LIVEVA_DIR     = FabricLoader.getInstance().getConfigDir().resolve("LiveVA");
+    private static final Path WHITELIST_FILE = LIVEVA_DIR.resolve("whitelist.txt");
+    private static final Path CONFIG_FILE    = LIVEVA_DIR.resolve("config.txt");
 
-    // --- Strict Regex Patterns ---
-    private static final Pattern P_PATTERN = Pattern.compile("^(Guild >|Party >|From )?\\s*(?:\\[.*?\\]\\s*)?([a-zA-Z0-9_]+)[^:]*:\\s*!p\\b", Pattern.CASE_INSENSITIVE);
+    private static final Pattern P_PATTERN     = Pattern.compile("^(Guild >|Party >|From )?\\s*(?:\\[.*?\\]\\s*)?([a-zA-Z0-9_]+)[^:]*:\\s*!p\\b", Pattern.CASE_INSENSITIVE);
     private static final Pattern INVITE_PATTERN = Pattern.compile("(?:\\[.*?\\]\\s*)?([a-zA-Z0-9_]+)\\s+has invited you to join their party!", Pattern.CASE_INSENSITIVE);
-    private static final Pattern JOIN_PATTERN = Pattern.compile("^(?:Party Finder >\\s*)?\\(?(?:\\[.*?\\]\\s*)?([a-zA-Z0-9_]+)\\)?\\s+joined the (?:party|dungeon group)", Pattern.CASE_INSENSITIVE);
-    private static final Pattern MATH_PATTERN = Pattern.compile("^(Guild >|Party >|From )\\s*(?:\\[.*?\\]\\s*)?([a-zA-Z0-9_]+)[^:]*:\\s*!math\\s+(.+)$", Pattern.CASE_INSENSITIVE);
+    private static final Pattern JOIN_PATTERN  = Pattern.compile("^(?:Party Finder >\\s*)?\\(?(?:\\[.*?\\]\\s*)?([a-zA-Z0-9_]+)\\)?\\s+joined the (?:party|dungeon group)", Pattern.CASE_INSENSITIVE);
+    private static final Pattern MATH_PATTERN  = Pattern.compile("^(Guild >|Party >|From )\\s*(?:\\[.*?\\]\\s*)?([a-zA-Z0-9_]+)[^:]*:\\s*!math\\s+(.+)$", Pattern.CASE_INSENSITIVE);
     private static final Pattern DEATH_PATTERN = Pattern.compile("^(?:☠\\s*)?([a-zA-Z0-9_]+)\\s+.*and became a ghost", Pattern.CASE_INSENSITIVE);
 
     @Override
@@ -75,6 +75,16 @@ public class LiveModClient implements ClientModInitializer {
         loadConfig();
         loadWhitelist();
 
+        ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
+            if (!Files.exists(CONFIG_FILE)) {
+                client.execute(() -> {
+                    if (client.player != null) {
+                        client.player.sendMessage(Text.literal("§b[LiveVA] §fMod install ho gaya! Features use karne ke liye §e/va §ftype karo."), false);
+                    }
+                });
+            }
+        });
+
         ClientReceiveMessageEvents.GAME.register((message, overlay) -> {
             if (overlay) return;
             MinecraftClient client = MinecraftClient.getInstance();
@@ -82,8 +92,7 @@ public class LiveModClient implements ClientModInitializer {
 
             String text = message.getString().replaceAll("§.", "").trim();
 
-            // 1. Auto Accept (Whitelist Based)
-            if (autoAccept) {
+            if (F_AUTOACCEPT.isActive()) {
                 Matcher invMatcher = INVITE_PATTERN.matcher(text);
                 if (invMatcher.find()) {
                     String inviter = invMatcher.group(1).toLowerCase();
@@ -97,13 +106,11 @@ public class LiveModClient implements ClientModInitializer {
                 }
             }
 
-            // 2. Auto Welcome (Dynamic Template)
-            if (autoWelcome) {
+            if (F_AUTOWELCOME.isActive()) {
                 Matcher joinMatcher = JOIN_PATTERN.matcher(text);
                 if (joinMatcher.find()) {
                     String newPlayer = joinMatcher.group(1);
                     long now = System.currentTimeMillis();
-
                     if (now - lastWelcomed.getOrDefault(newPlayer, 0L) > WELCOME_COOLDOWN_MS) {
                         lastWelcomed.put(newPlayer, now);
                         new Timer().schedule(new TimerTask() {
@@ -117,23 +124,22 @@ public class LiveModClient implements ClientModInitializer {
                 }
             }
 
-            // 3. Smart !p Invites (Public, Guild, Private)
             Matcher pMatcher = P_PATTERN.matcher(text);
             if (pMatcher.find()) {
-                String channel = pMatcher.group(1);
-                String requester = pMatcher.group(2);
+                String channel     = pMatcher.group(1);
+                String requester   = pMatcher.group(2);
                 boolean allowInvite = false;
 
                 if (channel == null || channel.trim().isEmpty()) {
-                    if (publicP) allowInvite = true;
+                    if (F_PUBLICP.isActive()) allowInvite = true;
                 } else {
                     String ch = channel.trim().toLowerCase();
-                    if (ch.equals("guild >") && guildP) allowInvite = true;
-                    else if (ch.equals("from ") && privateP) allowInvite = true;
+                    if (ch.equals("guild >") && F_GUILDP.isActive())   allowInvite = true;
+                    else if (ch.equals("from ") && F_PRIVATEP.isActive()) allowInvite = true;
                 }
 
                 if (allowInvite) {
-                    if (isAfk) {
+                    if (F_AFK.isActive()) {
                         long now = System.currentTimeMillis();
                         if (now - lastAfkMsg.getOrDefault(requester, 0L) > AFK_COOLDOWN_MS) {
                             lastAfkMsg.put(requester, now);
@@ -148,23 +154,22 @@ public class LiveModClient implements ClientModInitializer {
                 }
             }
 
-            // 4. Math Bot
-            if (mathBot) {
+            if (F_MATHBOT.isActive()) {
                 Matcher mathMatcher = MATH_PATTERN.matcher(text);
                 if (mathMatcher.find()) {
                     String channel = mathMatcher.group(1);
-                    String user = mathMatcher.group(2);
-                    String expr = mathMatcher.group(3);
-                    String ans = safeCalcJava(expr);
+                    String user    = mathMatcher.group(2);
+                    String expr    = mathMatcher.group(3);
+                    String ans     = safeCalcJava(expr);
                     if (ans != null) {
                         new Timer().schedule(new TimerTask() {
                             @Override
                             public void run() {
                                 client.execute(() -> {
                                     String prefix = channel.toLowerCase();
-                                    if (prefix.contains("guild")) client.getNetworkHandler().sendChatCommand("gc " + user + ", " + expr + " = " + ans);
+                                    if (prefix.contains("guild"))      client.getNetworkHandler().sendChatCommand("gc " + user + ", " + expr + " = " + ans);
                                     else if (prefix.contains("party")) client.getNetworkHandler().sendChatCommand("pc " + user + ", " + expr + " = " + ans);
-                                    else if (prefix.contains("from")) client.getNetworkHandler().sendChatCommand("msg " + user + " " + expr + " = " + ans);
+                                    else if (prefix.contains("from"))  client.getNetworkHandler().sendChatCommand("msg " + user + " " + expr + " = " + ans);
                                 });
                             }
                         }, 1000);
@@ -172,21 +177,18 @@ public class LiveModClient implements ClientModInitializer {
                 }
             }
 
-            // 5. Smart Auto BOOM
-            if (deathBot) {
+            if (F_DEATHBOT.isActive()) {
                 Matcher deathMatcher = DEATH_PATTERN.matcher(text);
                 if (deathMatcher.find()) {
                     if (!text.toLowerCase().contains("disconnected")) {
                         String deadPlayer = deathMatcher.group(1);
-                        String lowerName = deadPlayer.toLowerCase();
-
+                        String lowerName  = deadPlayer.toLowerCase();
                         boolean isIgnoredName = lowerName.equals("you") ||
                                 lowerName.equals("party") ||
                                 lowerName.equals("guild") ||
                                 lowerName.equals("from") ||
                                 lowerName.equals("to") ||
                                 lowerName.equals(client.getSession().getUsername().toLowerCase());
-
                         if (!isIgnoredName) {
                             new Timer().schedule(new TimerTask() {
                                 @Override
@@ -201,7 +203,6 @@ public class LiveModClient implements ClientModInitializer {
             }
         });
 
-        // --- Commands Registration ---
         ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> {
             dispatcher.register(ClientCommandManager.literal("va")
                     .executes(context -> {
@@ -269,40 +270,39 @@ public class LiveModClient implements ClientModInitializer {
             );
         });
 
-        // Keybind (Right Shift)
         openMenuKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("Open VA Menu", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_RIGHT_SHIFT, KeyBinding.Category.create(Identifier.of("livesb", "category"))));
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            while (openMenuKey.wasPressed()) client.setScreen(new SbaGuiScreen());
+            while (openMenuKey.wasPressed()) client.setScreen(new com.herovilleger.liveva.clickgui.SbaGuiScreen());
             if (openGuiNextTick) {
-                client.setScreen(new SbaGuiScreen());
+                client.setScreen(new com.herovilleger.liveva.clickgui.SbaGuiScreen());
                 openGuiNextTick = false;
             }
         });
     }
 
-    // --- File System Methods ---
     public static void loadConfig() {
         try {
+            Files.createDirectories(LIVEVA_DIR);
             if (Files.exists(CONFIG_FILE)) {
                 List<String> lines = Files.readAllLines(CONFIG_FILE);
                 for (String line : lines) {
                     if (line.contains("=")) {
                         String[] parts = line.split("=", 2);
-                        String key = parts[0].trim();
+                        String key   = parts[0].trim();
                         String value = parts[1].trim();
                         switch (key) {
-                            case "isAfk": isAfk = Boolean.parseBoolean(value); break;
-                            case "autoAccept": autoAccept = Boolean.parseBoolean(value); break;
-                            case "mathBot": mathBot = Boolean.parseBoolean(value); break;
-                            case "guildP": guildP = Boolean.parseBoolean(value); break;
+                            case "isAfk":        F_AFK.setActive(Boolean.parseBoolean(value));         break;
+                            case "autoAccept":   F_AUTOACCEPT.setActive(Boolean.parseBoolean(value));  break;
+                            case "mathBot":      F_MATHBOT.setActive(Boolean.parseBoolean(value));     break;
+                            case "guildP":       F_GUILDP.setActive(Boolean.parseBoolean(value));      break;
                             case "partyP":
-                            case "privateP": privateP = Boolean.parseBoolean(value); break;
-                            case "publicP": publicP = Boolean.parseBoolean(value); break;
-                            case "autoWelcome": autoWelcome = Boolean.parseBoolean(value); break;
-                            case "deathBot": deathBot = Boolean.parseBoolean(value); break;
-                            case "welcomeTemplate": welcomeTemplate = value; break;
-                            case "boomTemplate": boomTemplate = value; break;
+                            case "privateP":     F_PRIVATEP.setActive(Boolean.parseBoolean(value));    break;
+                            case "publicP":      F_PUBLICP.setActive(Boolean.parseBoolean(value));     break;
+                            case "autoWelcome":  F_AUTOWELCOME.setActive(Boolean.parseBoolean(value)); break;
+                            case "deathBot":     F_DEATHBOT.setActive(Boolean.parseBoolean(value));    break;
+                            case "welcomeTemplate": welcomeTemplate = value;                           break;
+                            case "boomTemplate":    boomTemplate    = value;                           break;
                         }
                     }
                 }
@@ -314,17 +314,18 @@ public class LiveModClient implements ClientModInitializer {
 
     public static void saveConfig() {
         try {
+            Files.createDirectories(LIVEVA_DIR);
             List<String> lines = java.util.Arrays.asList(
-                    "isAfk=" + isAfk,
-                    "autoAccept=" + autoAccept,
-                    "mathBot=" + mathBot,
-                    "guildP=" + guildP,
-                    "privateP=" + privateP,
-                    "publicP=" + publicP,
-                    "autoWelcome=" + autoWelcome,
-                    "deathBot=" + deathBot,
+                    "isAfk="           + F_AFK.isActive(),
+                    "autoAccept="      + F_AUTOACCEPT.isActive(),
+                    "mathBot="         + F_MATHBOT.isActive(),
+                    "guildP="          + F_GUILDP.isActive(),
+                    "privateP="        + F_PRIVATEP.isActive(),
+                    "publicP="         + F_PUBLICP.isActive(),
+                    "autoWelcome="     + F_AUTOWELCOME.isActive(),
+                    "deathBot="        + F_DEATHBOT.isActive(),
                     "welcomeTemplate=" + welcomeTemplate,
-                    "boomTemplate=" + boomTemplate
+                    "boomTemplate="    + boomTemplate
             );
             Files.write(CONFIG_FILE, lines);
         } catch (Exception e) {
@@ -345,7 +346,6 @@ public class LiveModClient implements ClientModInitializer {
         try { Files.write(WHITELIST_FILE, whitelist); } catch (Exception ignored) {}
     }
 
-    // --- Math Engine ---
     private String safeCalcJava(String expr) {
         try {
             expr = expr.replace("**", "^").trim();

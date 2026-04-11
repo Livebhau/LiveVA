@@ -48,9 +48,10 @@
 
 1. Make sure you have [Fabric Loader](https://fabricmc.net/use/installer/) installed for your Minecraft version.
 2. Download the Fabric API and place it in your `mods` folder.
-3. Download the latest `livesb-X.X.X.jar` from the **Releases** tab.
-4. Drop the `.jar` file into your `.minecraft/mods` folder.
-5. Launch the game and press `Right Shift` to open the menu!
+3. Download **OWO Lib** and place it in your `mods` folder (required dependency).
+4. Download the latest `livesb-X.X.X.jar` from the **Releases** tab.
+5. Drop the `.jar` file into your `.minecraft/mods` folder.
+6. Launch the game and press `Right Shift` to open the menu!
 
 ---
 
