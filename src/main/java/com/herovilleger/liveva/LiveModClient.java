@@ -640,6 +640,7 @@ public class LiveModClient implements ClientModInitializer {
             LOGGER.error("Failed to save config", e);
         }
     }
+    //hi
 
     private static void loadWhitelist() {
         try {
