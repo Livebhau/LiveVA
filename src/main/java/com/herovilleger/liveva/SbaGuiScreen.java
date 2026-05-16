@@ -9,7 +9,7 @@ public class SbaGuiScreen extends Screen {
     private String currentCategory = "General";
 
     public SbaGuiScreen() {
-        super(Text.literal("§bLiveSB Premium Menu"));
+        super(Text.literal("§bLiveVA Premium Menu"));
     }
 
     @Override
@@ -96,12 +96,26 @@ public class SbaGuiScreen extends Screen {
                 LiveModClient.saveConfig();
                 button.setMessage(Text.literal("Auto BOOM: " + (LiveModClient.deathBot ? "§aON" : "§cOFF")));
             }).dimensions(contentX, contentY, btnWidth, btnHeight).build());
+
+            // NAYA: RNG Guild Toggle
+            this.addDrawableChild(ButtonWidget.builder(Text.literal("RNG Guild: " + (LiveModClient.rngGuildMsg ? "§aON" : "§cOFF")), button -> {
+                LiveModClient.rngGuildMsg = !LiveModClient.rngGuildMsg;
+                LiveModClient.saveConfig();
+                button.setMessage(Text.literal("RNG Guild: " + (LiveModClient.rngGuildMsg ? "§aON" : "§cOFF")));
+            }).dimensions(contentX + btnWidth + 10, contentY, btnWidth, btnHeight).build());
+
+            // NAYA: RNG Party Toggle
+            this.addDrawableChild(ButtonWidget.builder(Text.literal("RNG Party: " + (LiveModClient.rngPartyMsg ? "§aON" : "§cOFF")), button -> {
+                LiveModClient.rngPartyMsg = !LiveModClient.rngPartyMsg;
+                LiveModClient.saveConfig();
+                button.setMessage(Text.literal("RNG Party: " + (LiveModClient.rngPartyMsg ? "§aON" : "§cOFF")));
+            }).dimensions(contentX, contentY + 30, btnWidth, btnHeight).build());
         }
     }
 
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        context.fill(0, 0, this.width, this.height, 0x88000000); // Background dim
+        context.fill(0, 0, this.width, this.height, 0x88000000);
 
         int guiWidth = 400;
         int guiHeight = 250;
@@ -109,21 +123,17 @@ public class SbaGuiScreen extends Screen {
         int startY = (this.height - guiHeight) / 2;
         int sidebarWidth = 110;
 
-        // Backgrounds
         context.fill(startX + sidebarWidth, startY, startX + guiWidth, startY + guiHeight, 0xFF1E1E24);
         context.fill(startX, startY, startX + sidebarWidth, startY + guiHeight, 0xFF15151A);
 
-        // Manual Purple Border Fix
         int borderColor = 0xFFAA00AA;
         context.fill(startX - 1, startY - 1, startX + guiWidth + 1, startY, borderColor);
         context.fill(startX - 1, startY + guiHeight, startX + guiWidth + 1, startY + guiHeight + 1, borderColor);
         context.fill(startX - 1, startY, startX, startY + guiHeight, borderColor);
         context.fill(startX + guiWidth, startY, startX + guiWidth + 1, startY + guiHeight, borderColor);
 
-        // Divider
         context.fill(startX + sidebarWidth, startY + 24, startX + guiWidth, startY + 25, 0xFF303038);
 
-        // Text
         context.drawTextWithShadow(this.textRenderer, "Categories", startX + 25, startY + 10, 0xAA00AA);
         context.drawTextWithShadow(this.textRenderer, "Settings: " + currentCategory, startX + sidebarWidth + 15, startY + 10, 0xFFFFFF);
 

@@ -39,7 +39,32 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: "latest"
-          name: "Latest Development Build"
-          body: "Yeh auto-generated release hai latest commit se."
+          name: "new Features"
+          body: "# 🚀 What's New in LiveVA Premium
+
+LiveVA just got a massive upgrade! We've introduced powerful new RNG tracking and interactive chat features to make managing your drops and settings easier than ever. 
+
+### 🎲 The Ultimate RNG Drop Manager & Auto-Flex
+Never miss a chance to flex your insane luck! LiveVA now intelligently tracks your high-value drops without any extra effort on your part.
+* **Smart Dungeon Chest Scanner:** The mod instantly scans Obsidian and Bedrock chests when opened. If it spots an RNG drop (like Necron's Handle, Shadow Warp, or Master Stars), it triggers a massive on-screen Title Alert and automatically announces the drop to your Guild or Party (Customizable in the GUI).
+* **Slayer & Boss Chat Scanner:** Don't have a chest to open? No problem. LiveVA detects `RARE DROP`, `CRAZY RARE DROP`, and `INSANE DROP` messages in your chat and auto-flexes them for you instantly!
+
+### ✨ Interactive "Click-to-Flex" Chat Buttons
+  Whenever you get a rare drop, LiveVA generates a private, VIP-style message directly in your chat box, displaying the item and your Magic Find.
+  * It features three clickable, interactive buttons: **`[ALL]`**, **`[PARTY]`**, and **`[GUILD]`**.
+  * Simply click the button of your choice, and the mod will automatically type and send the flex message to that specific channel. No more frantic typing while trying to survive!
+  
+  ### 🖱️ 1-Click Interactive Management
+  We've brought the GUI directly into your chat! Managing your lists is now faster than ever.
+  * Type `/va list` or `/va listsounds` to view your active friends or sound triggers.
+  * Every entry now features a red, clickable **`[✖]`** button next to it. Just click it to instantly remove that player or sound trigger without having to type the remove command manually!
+  
+  ### 🆘 In-Game Help Menu
+  Forget how to bind a sound or set a welcome message?
+  * Simply type **`/va help`** in the game chat to bring up a beautifully formatted, color-coded list of every command available in LiveVA Premium.
+
+---
+
+*(All previous core features like Smart `!p` Routing, Custom `.wav` Audio Alerts, Auto-Welcome, Math Bot, and the Premium settings GUI are fully intact and optimized!)*"
           prerelease: true
           files: build/libs/*.jar # Gradle yahan jar file save karta hai
